@@ -12,6 +12,7 @@ import arff
 import collections
 import operator
 
+
 from collections import namedtuple
 attri = namedtuple('attri', ['Name', 'Nominal', 'NominalValue'])
 
@@ -45,16 +46,27 @@ def convertData(attributeElements, data):
 def AllEntropy(attrinstances):
     neg_count = 0
     pos_count = 0
-    for element in attrinstances[len(attrinstances)-1]:
-        if element == 0:
+    pos_entro = 0
+    neg_entro = 0
+    entrop = 0
+    for element in attrinstances:
+        if element[len(element)-1] == 0:
             neg_count += 1
         else:
             pos_count += 1
     total = neg_count + pos_count
-    pos_entro = pos_count/float(total)
-    if pos_entro !=0:
+    if float(total) != 0:
+        pos_entro = pos_count/float(total)
+    if pos_entro != 0:
         pos_entro = pos_entro * (math.log((pos_entro), 2))
-    neg_entro = neg_count/float(total)
+    else:
+        pass
+        #makeleaf
+    if float(total) != 0:
+        neg_entro = neg_count/float(total)
+    else:
+        #makeleaf
+        pass
     if neg_entro !=0:
         neg_entro = neg_entro * (math.log((neg_entro), 2))
     entrop = (-1) * (pos_entro + neg_entro)
@@ -62,72 +74,90 @@ def AllEntropy(attrinstances):
     return entrop
 
 #find the entropy of the instances in class
-def EachEntropy(element, attrinstances, n):
-    neg_count = 0
-    pos_count = 0
+def EachEntropy(element, attrinstances, m, arffdata):
     attri = {}
     n = 0
+    entrop = []
+    Entro = 0
     for each in element.NominalValue:
-        attri[each] = {}
+        attri[n] = []
         n += 1
-# find the number of nominal values in the attribute
-    for num in range(2*n):
-        attri[num]
-        '''
-    for elem, value in zip(attrinstances[n],attrinstances[len(attrinstances)-1]) :
-        if value == 0:
-            neg_count += 1
-        else:
-            pos_count += 1
-            '''
-    total = neg_count + pos_count
-    pos_entro = pos_count/float(total)
-    if pos_entro !=0:
-        pos_entro = pos_entro * (math.log((pos_entro), 2))
-    neg_entro = neg_count/float(total)
-    if neg_entro !=0:
-        neg_entro = neg_entro * (math.log((neg_entro), 2))
-    entrop = (-1) * (pos_entro + neg_entro)
-    print "Entrop: " + str(entrop)
-    return entrop
+    for ele in arffdata:
+        attri[ele[m]].append(ele)
+    for num in range(n):
+        entrop.append(AllEntropy(attri[num]))
+        Entro += entrop[num]
+
+    print "Entro: " + str(Entro)
+    return Entro
 
 #calculate the entropy of each feature sans the class
 def EntroyCal(arffelements, attrinstances, arffdata, all_entropy):
     featureentrop = 0
     maxinfogain = 0
     maxelem = 0
+    infogain = []
     i = 0
     for element in arffelements:
         if element.Nominal ==True:
             for each in attrinstances:
-                entrop =  EachEntropy(element, attrinstances, i)
-                infogain = InfoGainCal(entrop, all_entropy)
-                if maxinfogain < infogain:
-                    maxinfogain = infogain
-                    maxelem = element
+                entrop =  EachEntropy(element, attrinstances, i, arffdata)
+                infogain.append(InfoGainCal(entrop, all_entropy))
         elif element.Nominal == False:
-            arffdata.sort(key = operator.itemgetter(i))
-            #CandidateSplit(arffelements[element])
+            entrop = CandidateSplit(arffelements[i], attrinstances, arffdata, i)
+            infogain.append(InfoGainCal(entrop, all_entropy))
         i = i +1
+    infogain.index(min(infogain))
     print i
-    return maxelem
+    return infogain.index(min(infogain))
 
 #calculate the information gain for each feature
 def InfoGainCal(feature_entropy, all_entropy):
     info_gain = float(all_entropy - feature_entropy)
     return info_gain
 
-def CandidateSplit(numfeature):
-    for num in numfeature:
-        print num
-    return
+def CandidateSplit(numfeature, attrinstances, arffdata, i):
+    arffdata.sort(key = operator.itemgetter(i))
+    set = {}
+    canditate_threshold = []
+# iterate through the list to find instances with same value for attribute
+    for key in range(len(arffdata)):
+        if (arffdata[key][i] == arffdata[key+1][i]):
+            set[arffdata[key]].append(arffdata[key][i])
+        else:
+            set[str(arffdata[key][i])].append(arffdata[key][i])
+
+
+    entrop =  AllEntropy(attrinstances)
+    return entrop
 
 #def StoppingCriteria(arffinstances):
+#all of the training instances reaching the node belong to the same class
+#there are fewer than m training instances reaching the node
+#no feature has positive information gain
+#there are no more remaining candidate splits at the node
+
 
 class Node(object):
-    def __init__(self, label):
+    def __init__(self, label, left = None, right = None):
         self.label = label
+        self.left = left
+        self.right = right
 
+    def traverse(rootnode):
+        this = rootnode
+        while this:
+            next = list()
+            for n in this:
+                print n.value,
+                if n.left: next.append(n.left)
+                if n.right: next.append(n.right)
+            print
+            this = next
+'''
+t = Node()
+traverse(t)
+'''
 
 def main():
     print ("Decision Tree")
@@ -153,7 +183,7 @@ def main():
     attrInstances = convertData(arffAttributes, arffData)
 
     #calculate the total entropy of the class
-    all_entropy = AllEntropy(attrInstances)
+    all_entropy = AllEntropy(arffData)
 
     #calculate all the feature's entropy and return the feature for
     next_node = EntroyCal(attrElem, attrInstances, arffData, all_entropy)
