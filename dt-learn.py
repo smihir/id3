@@ -11,6 +11,7 @@ import sys
 import arff
 import collections
 import operator
+from queue import Queue
 
 
 from collections import namedtuple
@@ -107,9 +108,9 @@ def EntroyCal(arffelements, attrinstances, arffdata, all_entropy):
             entrop = CandidateSplit(arffelements[i], attrinstances, arffdata, i)
             infogain.append(InfoGainCal(entrop, all_entropy))
         i = i +1
-    infogain.index(min(infogain))
+    infogain.index(max(infogain))
     print i
-    return infogain.index(min(infogain))
+    return infogain.index(max(infogain))
 
 #calculate the information gain for each feature
 def InfoGainCal(feature_entropy, all_entropy):
@@ -118,15 +119,28 @@ def InfoGainCal(feature_entropy, all_entropy):
 
 def CandidateSplit(numfeature, attrinstances, arffdata, i):
     arffdata.sort(key = operator.itemgetter(i))
-    set = {}
+    set_val = {}
     canditate_threshold = []
-# iterate through the list to find instances with same value for attribute
-    for key in range(len(arffdata)):
-        if (arffdata[key][i] == arffdata[key+1][i]):
-            set[arffdata[key]].append(arffdata[key][i])
-        else:
-            set[str(arffdata[key][i])].append(arffdata[key][i])
 
+# iterate through the list to find instances with same value for attribute
+    for key in arffdata:
+        if key[i] not in set_val:
+            set_val[key[i]] = []
+        set_val[key[i]].append(key[-1])
+    keys = set_val.keys()
+    keys.sort()
+    for sval in range(len(keys)):
+        if set_val[keys].sval == set_val[keys+1].sval:
+            pass
+    j = 0
+    thresh = []
+    for keys in set_val:
+        while not set_val[keys][j]:
+            if set_val[keys][j]:
+                thresh.append((set_val[keys] + set_val[keys+1])/2)
+            j+=1
+        else:
+            pass
 
     entrop =  AllEntropy(attrinstances)
     return entrop
@@ -158,6 +172,24 @@ class Node(object):
 t = Node()
 traverse(t)
 '''
+
+#BFS implementation
+def BFS(graph, root, target):
+    q = Queue()
+    checked = []
+    q.enqueue(root)
+    path = 0
+    while not q.isEmpty():
+        v = q.dequeue()
+        if v == target:
+            return True
+        elif v not in checked:
+            for edge in graph[v]:
+                if v not in checked:
+                    q.enqueue(edge)
+                checked.append(v)
+            return False
+
 
 def main():
     print ("Decision Tree")
