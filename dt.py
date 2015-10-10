@@ -178,6 +178,7 @@ class Dt(Node):
         return all_entropy - sum_entropy
 
     def __continuous_infogain(self, attribute_name, data):
+
         data.sort(key=operator.itemgetter(attribute_name))
 
         groups = []
@@ -210,9 +211,6 @@ class Dt(Node):
             right = [d for d in data if d[attribute_name] > candidate]
             infogain.append(self.__split_infogain(attribute_name, left, right))
 
-        if len(infogain) == 0:
-            print 'staahp'
-
         index, max_val = max(enumerate(infogain), key=operator.itemgetter(1))
 
         self.__attribute_infogain[attribute_name] = max_val
@@ -242,15 +240,35 @@ class Dt(Node):
         if len(set([d['class'] for d in data])) == 1:
             return
         # (ii) there are fewer than m training instances reaching the node
-        if len(clean_data) <= self.m:
+        if len(clean_data) < self.m:
             return
         # (iii) no feature has positive information gain
+        max_infogain_list = list()
         for k, v in attribute_dictionary.iteritems():
             self.__calculate_infogain(k, data)
-        max_infogain = max(self.__attribute_infogain.iteritems(), key=operator.itemgetter(1))
+        max_infogain_list.append(max(self.__attribute_infogain.iteritems(), key=operator.itemgetter(1)))
+
+        for key, value in self.__attribute_infogain.iteritems():
+            if value == max_infogain_list[0][1] and key != max_infogain_list[0][0]:
+                max_infogain_list.append([key, value])
+
+        key_index = list()
+        for val in max_infogain_list:
+            key = val[1]
+            for k, v in enumerate(self.__raw_data['attributes']):
+                if v[0] == val[0]:
+                    key_index.append(k)
+        min_index = min(key_index)
+
+        attr_name = self.__raw_data['attributes'][min_index]
+
+        for m in max_infogain_list:
+            if m[0] == attr_name[0]:
+                max_infogain = m
+                break
+
         if max_infogain < 0:
             return
-        print max_infogain
         # (iv) there are no more remaining candidate splits at the node.
         if len(self.__attribute_infogain) == 0:
             return
@@ -264,14 +282,31 @@ class Dt(Node):
         # recurse
         if self.__is_nominal(max_infogain[0]):
             data.sort(key=operator.itemgetter(max_infogain[0]))
-            count = list()
-            count.append([d['class'] for d in data].count(0))
-            count.append([d['class'] for d in data].count(1))
+
             groups = []
+            nom_to_index = []
             for k, g in itertools.groupby(data, operator.itemgetter(max_infogain[0])):
                 groups.append(list(g))
+                nom_to_index.append(k)
+
+            missing_index = list()
+            if len(groups) != len(attribute_dictionary[max_infogain[0]][1]):
+                for i in range(len(attribute_dictionary[max_infogain[0]][1])):
+                    if nom_to_index.count(i) == 0:
+                        missing_index.append(i)
+
+            for i in missing_index:
+                node = dict()
+                node['key'] = max_infogain[0]
+                node['count'] = [0, 0]
+                node['value'] = self.__attribute_dictionary[max_infogain[0]][1][i]
+                parent.add_child(Node(node))
+                attribute_dictionary[max_infogain[0]][1][i]
 
             for g in groups:
+                count = list()
+                count.append([d['class'] for d in g].count(0))
+                count.append([d['class'] for d in g].count(1))
                 node = dict()
                 node['key'] = max_infogain[0]
                 node['count'] = count
@@ -284,9 +319,6 @@ class Dt(Node):
                 self.__buidtree(g, child)
         else:
             data.sort(key=operator.itemgetter(max_infogain[0]))
-            count = list()
-            count.append([d['class'] for d in data].count(0))
-            count.append([d['class'] for d in data].count(1))
             for k, d in enumerate(data):
                 if d[max_infogain[0]] > continuous_attrbute_split[max_infogain[0]]:
                     index = k
@@ -296,28 +328,30 @@ class Dt(Node):
             groups.append(data[:index])
             groups.append(data[index:])
             for g in groups:
+                count = list()
+                count.append([d['class'] for d in g].count(0))
+                count.append([d['class'] for d in g].count(1))
                 node = dict()
                 node['key'] = max_infogain[0]
                 node['value'] = continuous_attrbute_split[max_infogain[0]]
                 node['count'] = count
-                #node['data'] =data
-                for d in g:
-                    d.pop(max_infogain[0], None)
+                #node['data'] = data
+                #for d in g:
+                #    d.pop(max_infogain[0], None)
                 child = Node(node)
                 parent.add_child(child)
                 self.__buidtree(g, child)
 
     def print_tree(self, Node, level):
-        for i in range(level):
-            print "|    ",
-        print Node.data
+        if level != -1:
+            for i in range(level):
+                print "|    ",
+            print Node.data
         newlevel = level + 1
         for c in Node.children:
             self.print_tree(c, newlevel)
 
 
 if __name__ == "__main__":
-    print 'Start'
     dt = Dt('heart_train.arff', 2)
-    dt.print_tree(dt.tree, 0)
-    print 'OK'
+    dt.print_tree(dt.tree, -1)
