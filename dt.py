@@ -300,6 +300,7 @@ class Dt(Node):
                 node['key'] = max_infogain[0]
                 node['count'] = [0, 0]
                 node['value'] = self.__attribute_dictionary[max_infogain[0]][1][i]
+                node['cvalue'] = i
                 node['negpos'] = self.__attribute_dictionary['class'][1][0]
                 parent.add_child(Node(node))
                 attribute_dictionary[max_infogain[0]][1][i]
@@ -314,6 +315,7 @@ class Dt(Node):
                 node['data'] = g
                 for d in g:
                     node['value'] = self.__attribute_dictionary[max_infogain[0]][1][d[max_infogain[0]]]
+                    node['cvalue'] = d[max_infogain[0]]
                     d.pop(max_infogain[0], None)
                 child = Node(node)
                 parent.add_child(child)
@@ -336,6 +338,7 @@ class Dt(Node):
                 node = dict()
                 node['key'] = max_infogain[0]
                 node['value'] = continuous_attrbute_split[max_infogain[0]]
+                node['cvalue'] = continuous_attrbute_split[max_infogain[0]]
                 node['count'] = count
                 node['eq'] = i
                 node['data'] = g
@@ -369,6 +372,39 @@ class Dt(Node):
         for c in Node.children:
             self.print_tree(c, newlevel)
 
+    def __predict(self, index, data, parent):
+        if len(parent.children) == 0:
+            posneg = 'negative' if data['class'] == 0 else 'positive'
+            if parent.data.has_key('data'):
+                node_posneg = ': negative' if parent.data['data'][0]['class'] == 0 else ': positive'
+            else:
+                node_posneg = ': ' + parent.data['negpos']
+            print str(index + 1) + ' Actual: ' + posneg + ' Predicted: ' + node_posneg
+
+            if data['class'] != parent.data['data'][0]['class']:
+                return 0
+            else:
+                return 1
+
+        new_parent = None
+        for child in parent.children:
+            if self.__is_nominal(child.data['key']):
+                if data[child.data['key']] == child.data['cvalue']:
+                    #print 'match ' + child.data['value'] + ' ' + child.data['key']
+                    new_parent = child
+            else:
+                key_value = data[child.data['key']]
+                candidate_split = child.data['cvalue']
+                if child.data['eq'] == 0 and key_value < candidate_split:
+                    new_parent = child
+                if child.data['eq'] == 1 and key_value > candidate_split:
+                    new_parent = child
+        if new_parent:
+            return self.__predict(index, data, new_parent)
+        else:
+            print 'No Parent, how did I reach here :('
+            return 0
+
     def predict(self, arff_file):
         with open(arff_file) as f:
             test_data = arff.load(f, 'rb')
@@ -381,7 +417,13 @@ class Dt(Node):
                 subject[attribute[0]] = d[index]
             clean_test_data.append(subject)
 
+        v = 0
+        for k, d in enumerate(clean_test_data):
+            v += self.__predict(k, d, self.tree)
+        print 'Number of correctly classified: ' + str(v) + ' Total number of test instances: ' + str(len(clean_test_data))
+
 
 if __name__ == "__main__":
     dt = Dt(sys.argv[1], int(sys.argv[3]))
     dt.print_tree(dt.tree, -1)
+    dt.predict(sys.argv[2])
