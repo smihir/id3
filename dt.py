@@ -300,6 +300,7 @@ class Dt(Node):
                 node['key'] = max_infogain[0]
                 node['count'] = [0, 0]
                 node['value'] = self.__attribute_dictionary[max_infogain[0]][1][i]
+                node['negpos'] = self.__attribute_dictionary['class'][1][0]
                 parent.add_child(Node(node))
                 attribute_dictionary[max_infogain[0]][1][i]
 
@@ -310,7 +311,7 @@ class Dt(Node):
                 node = dict()
                 node['key'] = max_infogain[0]
                 node['count'] = count
-                #node['data'] = data
+                node['data'] = g
                 for d in g:
                     node['value'] = self.__attribute_dictionary[max_infogain[0]][1][d[max_infogain[0]]]
                     d.pop(max_infogain[0], None)
@@ -327,6 +328,7 @@ class Dt(Node):
             groups = list()
             groups.append(data[:index])
             groups.append(data[index:])
+            i = 0
             for g in groups:
                 count = list()
                 count.append([d['class'] for d in g].count(0))
@@ -335,18 +337,34 @@ class Dt(Node):
                 node['key'] = max_infogain[0]
                 node['value'] = continuous_attrbute_split[max_infogain[0]]
                 node['count'] = count
-                #node['data'] = data
+                node['eq'] = i
+                node['data'] = g
                 #for d in g:
                 #    d.pop(max_infogain[0], None)
                 child = Node(node)
                 parent.add_child(child)
                 self.__buidtree(g, child)
+                i += 1
 
     def print_tree(self, Node, level):
         if level != -1:
             for i in range(level):
                 print "|    ",
-            print Node.data
+
+            posneg = ''
+            if len(Node.children) == 0:
+                if Node.data.has_key('data'):
+                    posneg = ': negative' if Node.data['data'][0]['class'] == 0 else ': positive'
+                else:
+                    posneg = ': ' + Node.data['negpos']
+            if self.__is_nominal(Node.data['key']):
+                print Node.data['key'] + ' = ' + str(Node.data['value']) + ' [' + str(Node.data['count'][0])\
+                  + ' ' + str(Node.data['count'][1]) + ']' + posneg
+            else:
+                cmp_str = ' <= ' if Node.data['eq'] == 0 else ' > '
+                print Node.data['key'] + cmp_str + str(Node.data['value']) + ' [' + str(Node.data['count'][0])\
+                  + ' ' + str(Node.data['count'][1]) + ']' + posneg
+
         newlevel = level + 1
         for c in Node.children:
             self.print_tree(c, newlevel)
