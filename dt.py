@@ -226,12 +226,6 @@ class Dt(Node):
 
     def __buidtree(self, clean_data, parent):
 
-        # Base cases:
-        # (ii) there are fewer than m training instances reaching the node
-        if len(clean_data) <= self.m:
-            print 'make leaf not node'
-            return
-
         # clean data structures, to be used in recursion
         self.__continuous_attrbute_split.clear()
         self.__attribute_infogain.clear()
@@ -243,22 +237,26 @@ class Dt(Node):
             if data[0].has_key(key):
                 attribute_dictionary[key] = value
 
+        # Base cases:
         # (i) all of the training instances reaching the node belong to the same class
         if len(set([d['class'] for d in data])) == 1:
-            print 'make leaf not node'
+            return
+        # (ii) there are fewer than m training instances reaching the node
+        if len(clean_data) <= self.m:
             return
         # (iii) no feature has positive information gain
         for k, v in attribute_dictionary.iteritems():
             self.__calculate_infogain(k, data)
         max_infogain = max(self.__attribute_infogain.iteritems(), key=operator.itemgetter(1))
         if max_infogain < 0:
-            print 'make leaf not node'
             return
         print max_infogain
         # (iv) there are no more remaining candidate splits at the node.
-        if len(self.__continuous_attrbute_split) == 0:
-            print 'make leaf not node'
+        if len(self.__attribute_infogain) == 0:
             return
+
+        attribute_infogain = copy.deepcopy(self.__attribute_infogain)
+        continuous_attrbute_split = copy.deepcopy(self.__continuous_attrbute_split)
 
         # make node not leaf
         # parent.add_child(self.__tree, max_infogain)
@@ -266,21 +264,31 @@ class Dt(Node):
         # recurse
         if self.__is_nominal(max_infogain[0]):
             data.sort(key=operator.itemgetter(max_infogain[0]))
+            count = list()
+            count.append([d['class'] for d in data].count(0))
+            count.append([d['class'] for d in data].count(1))
             groups = []
             for k, g in itertools.groupby(data, operator.itemgetter(max_infogain[0])):
                 groups.append(list(g))
 
             for g in groups:
+                node = dict()
+                node['key'] = max_infogain[0]
+                node['count'] = count
+                #node['data'] = data
                 for d in g:
+                    node['value'] = self.__attribute_dictionary[max_infogain[0]][1][d[max_infogain[0]]]
                     d.pop(max_infogain[0], None)
-                    child = Node(max_infogain[0])
-                    parent.add_child(child)
+                child = Node(node)
+                parent.add_child(child)
                 self.__buidtree(g, child)
         else:
             data.sort(key=operator.itemgetter(max_infogain[0]))
-
+            count = list()
+            count.append([d['class'] for d in data].count(0))
+            count.append([d['class'] for d in data].count(1))
             for k, d in enumerate(data):
-                if d[max_infogain[0]] > self.__continuous_attrbute_split[max_infogain[0]]:
+                if d[max_infogain[0]] > continuous_attrbute_split[max_infogain[0]]:
                     index = k
                     break
 
@@ -288,15 +296,20 @@ class Dt(Node):
             groups.append(data[:index])
             groups.append(data[index:])
             for g in groups:
+                node = dict()
+                node['key'] = max_infogain[0]
+                node['value'] = continuous_attrbute_split[max_infogain[0]]
+                node['count'] = count
+                #node['data'] =data
                 for d in g:
                     d.pop(max_infogain[0], None)
-                    child = Node(max_infogain[0])
-                    parent.add_child(child)
-                self.__buidtree(g, self.tree)
+                child = Node(node)
+                parent.add_child(child)
+                self.__buidtree(g, child)
 
     def print_tree(self, Node, level):
         for i in range(level):
-            
+            print "|    ",
         print Node.data
         newlevel = level + 1
         for c in Node.children:
