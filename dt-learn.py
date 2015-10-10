@@ -5,6 +5,7 @@ import copy
 import operator
 import itertools
 import sys
+import random
 
 
 class Node(object):
@@ -25,11 +26,10 @@ class Dt(Node):
     m = 2
     tree = None
 
-    def __init__(self, arff_file, m):
+    def __init__(self, raw_data, m):
         self.m = m
 
-        with open(arff_file, 'rb') as f:
-            self.__raw_data = arff.load(f, 'rb')
+        self.__raw_data = copy.deepcopy(raw_data)
 
         # Get data in a cleaner format
         for d in self.__raw_data['data']:
@@ -381,6 +381,9 @@ class Dt(Node):
                 node_posneg = ': ' + parent.data['negpos']
             print str(index + 1) + ' Actual: ' + posneg + ' Predicted: ' + node_posneg
 
+            if not parent.data.has_key('data'):
+                return parent.data['cvalue']
+
             if data['class'] != parent.data['data'][0]['class']:
                 return 0
             else:
@@ -395,7 +398,7 @@ class Dt(Node):
             else:
                 key_value = data[child.data['key']]
                 candidate_split = child.data['cvalue']
-                if child.data['eq'] == 0 and key_value < candidate_split:
+                if child.data['eq'] == 0 and key_value <= candidate_split:
                     new_parent = child
                 if child.data['eq'] == 1 and key_value > candidate_split:
                     new_parent = child
@@ -423,7 +426,43 @@ class Dt(Node):
         print 'Number of correctly classified: ' + str(v) + ' Total number of test instances: ' + str(len(clean_test_data))
 
 
+def test2():
+    print 'Running test2'
+    with open(sys.argv[1], 'rb') as f:
+        raw_data = arff.load(f, 'rb')
+
+    fract = sys.argv[5]
+    capture = int(len(raw_data['data']) * (int(fract) / 100))
+
+    for i in range(10):
+        print 'Iteration: ' + str(i + 1)
+        random.seed(i)
+        pruned_data = list()
+        for k in range(capture):
+            pruned_data.append(raw_data['data'][random.randint(0, len(raw_data['data'])) - 1])
+
+        new_data = dict()
+        for key, value in raw_data.iteritems():
+            if key == 'data':
+                new_data['data'] = copy.deepcopy(pruned_data)
+                continue
+            new_data[key] = copy.deepcopy(value)
+
+        print 'Data Size: ' + str(len(new_data['data']))
+
+        dt = Dt(new_data, int(sys.argv[3]))
+        dt.print_tree(dt.tree, -1)
+        dt.predict(sys.argv[2])
+        print '------------------------------'
+
+
 if __name__ == "__main__":
-    dt = Dt(sys.argv[1], int(sys.argv[3]))
-    dt.print_tree(dt.tree, -1)
-    dt.predict(sys.argv[2])
+
+    if len(sys.argv) == 6 and int(sys.argv[4]) == 1:
+        test2()
+    else:
+        with open(sys.argv[1], 'rb') as f:
+            raw_data = arff.load(f, 'rb')
+        dt = Dt(raw_data, int(sys.argv[3]))
+        dt.print_tree(dt.tree, -1)
+        dt.predict(sys.argv[2])
