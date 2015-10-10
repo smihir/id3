@@ -4,6 +4,7 @@ import math
 import copy
 import operator
 import itertools
+import sys
 
 
 class Node(object):
@@ -13,7 +14,6 @@ class Node(object):
 
     def add_child(self, obj):
         self.children.append(obj)
-
 
 
 class Dt(Node):
@@ -369,7 +369,19 @@ class Dt(Node):
         for c in Node.children:
             self.print_tree(c, newlevel)
 
+    def predict(self, arff_file):
+        with open(arff_file) as f:
+            test_data = arff.load(f, 'rb')
+
+        # Get data in a cleaner format
+        clean_test_data = list()
+        for d in test_data['data']:
+            subject = {}
+            for index, attribute in enumerate(self.__raw_data['attributes']):
+                subject[attribute[0]] = d[index]
+            clean_test_data.append(subject)
+
 
 if __name__ == "__main__":
-    dt = Dt('heart_train.arff', 2)
+    dt = Dt(sys.argv[1], int(sys.argv[3]))
     dt.print_tree(dt.tree, -1)
