@@ -18,15 +18,15 @@ class Node(object):
 
 
 class Dt(Node):
-    __raw_data = None
-    __data = []
-    __attribute_dictionary = {}
-    __attribute_infogain = {}
-    __continuous_attrbute_split = {}
-    m = 2
-    tree = None
 
     def __init__(self, raw_data, m):
+        self.__raw_data = None
+        self.__data = list()
+        self.__attribute_dictionary = dict()
+        self.__attribute_infogain = dict()
+        self.__continuous_attrbute_split = dict()
+        self.tree = None
+
         self.m = m
 
         self.__raw_data = copy.deepcopy(raw_data)
@@ -428,18 +428,23 @@ class Dt(Node):
 
 def test2():
     print 'Running test2'
-    with open(sys.argv[1], 'rb') as f:
-        raw_data = arff.load(f, 'rb')
 
-    fract = sys.argv[5]
-    capture = int(len(raw_data['data']) * (int(fract) / 100))
 
     for i in range(10):
         print 'Iteration: ' + str(i + 1)
+        with open(sys.argv[1], 'rb') as f:
+            raw_data = arff.load(f, 'rb')
+
+        fract = sys.argv[5]
+        capture = int(len(raw_data['data']) * (int(fract) / 100))
+
         random.seed(i)
         pruned_data = list()
+        index_tracker = dict()
         for k in range(capture):
-            pruned_data.append(raw_data['data'][random.randint(0, len(raw_data['data'])) - 1])
+            index = random.randint(0, len(raw_data['data']) - 1)
+            pruned_data.append(raw_data['data'][index])
+            del raw_data['data'][index]
 
         new_data = dict()
         for key, value in raw_data.iteritems():
@@ -453,6 +458,7 @@ def test2():
         dt = Dt(new_data, int(sys.argv[3]))
         dt.print_tree(dt.tree, -1)
         dt.predict(sys.argv[2])
+        del dt
         print '------------------------------'
 
 
