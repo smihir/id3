@@ -376,7 +376,7 @@ class Dt(Node):
 
     def __predict(self, index, data, parent):
         if len(parent.children) == 0:
-            posneg = 'negative' if data['class'] == 0 else 'positive'
+            posneg = self.__attribute_dictionary['class'][1][0] if data['class'] == 0 else self.__attribute_dictionary['class'][1][1]
             if parent.data.has_key('data'):
                 node_posneg = ': negative' if parent.data['data'][0]['class'] == 0 else ': positive'
             else:
