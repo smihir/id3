@@ -358,7 +358,7 @@ class Dt(Node):
             if len(Node.children) == 0:
                 if Node.data.has_key('data'):
                     #print 'Node has data!'
-                    posneg = ': negative' if Node.data['count'][0] >= Node.data['count'][1] else ': positive'
+                    posneg = ': ' + self.__attribute_dictionary['class'][1][0] if Node.data['count'][0] >= Node.data['count'][1] else ': ' + self.__attribute_dictionary['class'][1][1]
                 else:
                     #print 'sowee Node has no data!'
                     posneg = ': ' + Node.data['negpos']
