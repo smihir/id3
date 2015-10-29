@@ -357,8 +357,10 @@ class Dt(Node):
             posneg = ''
             if len(Node.children) == 0:
                 if Node.data.has_key('data'):
-                    posneg = ': negative' if Node.data['data'][0]['class'] == 0 else ': positive'
+                    #print 'Node has data!'
+                    posneg = ': negative' if Node.data['count'][0] >= Node.data['count'][1] else ': positive'
                 else:
+                    #print 'sowee Node has no data!'
                     posneg = ': ' + Node.data['negpos']
             if self.__is_nominal(Node.data['key']):
                 print Node.data['key'] + ' = ' + str(Node.data['value']) + ' [' + str(Node.data['count'][0])\
