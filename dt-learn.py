@@ -39,6 +39,13 @@ class Dt(Node):
                 self.__attribute_dictionary[attribute[0]] = attribute
             self.__data.append(subject)
 
+        if self.__attribute_dictionary['class'][1][0] == 'negative':
+            self.__neg_id = 0
+            self.__pos_id = 1
+        else:
+            self.__neg_id = 1
+            self.__pos_id = 0
+
         self.tree = Node(0)
         parent = self.tree
         self.__buidtree(self.__data, parent)
@@ -64,7 +71,7 @@ class Dt(Node):
 
         for subject in data:
             val_instances[subject[attribute_name]] += 1
-            if subject['class'] == 0:
+            if subject['class'] == self.__neg_id:
                 neg_instances[subject[attribute_name]] += 1
             else:
                 pos_instances[subject[attribute_name]] += 1
@@ -121,14 +128,14 @@ class Dt(Node):
 
         for d in left:
             val_instances[0] += 1
-            if d['class'] == 0:
+            if d['class'] == self.__neg_id:
                 neg_instances[0] += 1
             else:
                 pos_instances[0] += 1
 
         for d in right:
             val_instances[1] += 1
-            if d['class'] == 0:
+            if d['class'] == self.__neg_id:
                 neg_instances[1] += 1
             else:
                 pos_instances[1] += 1
@@ -378,15 +385,25 @@ class Dt(Node):
         if len(parent.children) == 0:
             posneg = self.__attribute_dictionary['class'][1][0] if data['class'] == 0 else self.__attribute_dictionary['class'][1][1]
             if parent.data.has_key('data'):
-                node_posneg = ': negative' if parent.data['data'][0]['class'] == 0 else ': positive'
+                node_posneg = self.__attribute_dictionary['class'][1][0] if parent.data['count'][0] >= parent.data['count'][1] else self.__attribute_dictionary['class'][1][1]
+                #node_posneg = ': negative' if parent.data['data'][0]['class'] == 0 else ': positive'
             else:
-                node_posneg = ': ' + parent.data['negpos']
+                node_posneg = parent.data['negpos']
             print str(index + 1) + ' Actual: ' + posneg + ' Predicted: ' + node_posneg
 
             if not parent.data.has_key('data'):
-                return parent.data['cvalue']
+                if posneg == node_posneg:
+                    return 1
+                else:
+                    return 0
 
-            if data['class'] != parent.data['data'][0]['class']:
+            if parent.data['count'][0] >= parent.data['count'][1]:
+                correct_class = 0
+            else:
+                correct_class = 1
+
+            #if data['class'] != parent.data['data'][0]['class']:
+            if data['class'] != correct_class:
                 return 0
             else:
                 return 1
@@ -423,6 +440,7 @@ class Dt(Node):
             clean_test_data.append(subject)
 
         v = 0
+        print '<Predictions for the Test Set Instances>'
         for k, d in enumerate(clean_test_data):
             v += self.__predict(k, d, self.tree)
         print 'Number of correctly classified: ' + str(v) + ' Total number of test instances: ' + str(len(clean_test_data))
